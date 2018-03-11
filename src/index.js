@@ -4,6 +4,7 @@ import loadingSvg from './loading.svg';
 import ProgressBar from './ProgressBar';
 import genImageData from './genImageData';
 import setViewer from './setViewer';
+import './polyfill-find';
 
 const { initedClassName, formatValue, genInfo, addStyle } = utils;
 

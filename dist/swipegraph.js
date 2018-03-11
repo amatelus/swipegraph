@@ -1,5 +1,8 @@
-var swipegraph = (function () {
-'use strict';
+(function (global, factory) {
+	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
+	typeof define === 'function' && define.amd ? define(factory) :
+	(global.swipegraph = factory());
+}(this, (function () { 'use strict';
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
   return typeof obj;
@@ -575,6 +578,29 @@ var setViewer = (function (imageDataList, root, info, videoWidth, videoHeight) {
   update();
 });
 
+if (!Array.prototype.find) {
+  Array.prototype.find = function (predicate) {
+    if (this === null) {
+      throw new TypeError('Array.prototype.find called on null or undefined');
+    }
+    if (typeof predicate !== 'function') {
+      throw new TypeError('predicate must be a function');
+    }
+    var list = Object(this);
+    var length = list.length >>> 0;
+    var thisArg = arguments[1];
+    var value;
+
+    for (var i = 0; i < length; i++) {
+      value = list[i];
+      if (predicate.call(thisArg, value, i, list)) {
+        return value;
+      }
+    }
+    return undefined;
+  };
+}
+
 var initedClassName$1 = utils.initedClassName;
 var formatValue = utils.formatValue;
 var genInfo = utils.genInfo;
@@ -699,4 +725,4 @@ if ((typeof window === 'undefined' ? 'undefined' : _typeof(window)) === 'object'
 
 return swipegraph;
 
-}());
+})));

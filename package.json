@@ -2,7 +2,7 @@
   "name": "swipegraph",
   "version": "0.1.0",
   "description": "SwipeGraph player",
-  "main": "src/index.js",
+  "main": "dist/swipegraph.js",
   "scripts": {
     "start": "rollup -c rollup.config.js --watch",
     "build": "rollup -c rollup.config.js"
