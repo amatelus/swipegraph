@@ -1,8 +1,5 @@
 import RefObject from './RefObject';
 import utils from './utils';
-import loadingSvg from './loading.svg';
-import ProgressBar from './ProgressBar';
-import genImageData from './genImageData';
 import setViewer from './setViewer';
 import './polyfill-find';
 
@@ -10,7 +7,6 @@ const { initedClassName, formatValue, genInfo, addStyle } = utils;
 
 const VERSION = process.env.VERSION;
 const refObjectCache = [];
-const imageDataCache = [];
 utils.initAutoSwipe(refObjectCache);
 
 const swipegraph = {
@@ -33,48 +29,12 @@ const swipegraph = {
 
     const root = document.createElement('div');
     addStyle(root, {
-      paddingTop: '56.25%',
       position: 'relative',
     });
-    root.innerHTML = loadingSvg;
     elem.appendChild(root);
 
-    const progress = new ProgressBar();
-    root.appendChild(progress.container);
-
     const info = genInfo(param);
-    refObject.$setInfo(info);
-
-    const videoPath = `${info.iframeSrc}/${info.contentId}/video.mp4`;
-    const cachedURL = imageDataCache.find(obj => obj.originPath === videoPath);
-
-    if (cachedURL) {
-      setViewer(cachedURL.data, root, info, cachedURL.width, cachedURL.height);
-    } else {
-      const cachedData = {
-        originPath: videoPath,
-        width: null,
-        height: null,
-        data: [],
-      };
-      imageDataCache.push(cachedData);
-
-      const xhr = new XMLHttpRequest();
-      xhr.open('GET', videoPath);
-      xhr.responseType = 'blob';
-      xhr.onload = (e) => {
-        genImageData(e.target.response, cachedData.data, info, root, (width, height) => {
-          cachedData.width = width;
-          cachedData.height = height;
-          setViewer(cachedData.data, root, info, width, height);
-        });
-      };
-
-      xhr.onprogress = (evt) => {
-        if (evt.lengthComputable) progress.update(evt.loaded, evt.total);
-      };
-      xhr.send();
-    }
+    setViewer(root, info, refObject);
 
     refObject.on('$detach', ({ target }) => {
       target.elem.classList.remove(initedClassName);

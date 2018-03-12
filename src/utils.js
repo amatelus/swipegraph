@@ -4,7 +4,6 @@ function getVisiblePlayer(list) {
   const result = [];
 
   list.forEach((refObject) => {
-    if (!refObject.$info || !refObject.$info.autoswipe) return;
     const bounding = refObject.elem.getBoundingClientRect();
     const wh = window.innerHeight;
 
@@ -17,43 +16,13 @@ function getVisiblePlayer(list) {
 export default {
   initedClassName,
   formatValue(elem, val) {
-    const tmpVal = Object.assign(
-      ['cid', 'src', 'ref', 'filter']
+    return Object.assign(
+      ['id', 'src', 'ref']
         .reduce((prev, key) => (Object.assign({}, prev, { [key]: elem.getAttribute(`data-${key}`) })), {}),
-      ['fps', 'quality', 'head', 'lazyload', 'swipingwidth', 'autoswipe']
+      ['length', 'autoswipe']
         .reduce((prev, key) => (Object.assign({}, prev, { [key]: JSON.parse(elem.getAttribute(`data-${key}`)) })), {}),
       val,
     );
-
-    const param = {};
-    Object.keys(tmpVal).forEach((key) => {
-      const value = tmpVal[key];
-      if (value === null) return;
-
-      switch (key) {
-        case 'src': {
-          const fileNameLike = value.match(/\/([^/]+?\.[^/]+?)($|\?)/);
-          if (fileNameLike === null) param.src = /\/$/.test(value) ? value.slice(0, -1) : value;
-          else param.src = value.slice(0, fileNameLike.index);
-          param.iframeSrc = value;
-          break;
-        }
-        case 'cid':
-          param.contentId = value;
-          break;
-        case 'head':
-          param.headIndex = value;
-          break;
-        case 'swipingwidth':
-          param.swipingWidth = value;
-          break;
-        default:
-          param[key] = value;
-          break;
-      }
-    });
-
-    return param;
   },
   genInfo(param) {
     const queryString = param.$auth ? `?${param.$auth}` : '';
@@ -61,19 +30,6 @@ export default {
       {
         queryString,
         cdnQueryString: param.$cdnAuth ? `?${param.$cdnAuth}` : queryString,
-        contentId: '',
-        headIndex: 0,
-        quality: 0.5,
-        loop: false,
-        muted: false,
-        controls: true,
-        autoplay: false,
-        showingTitle: true,
-        swipingWidth: 20,
-        filter: '',
-        iconcolor: '#E60014',
-        iconhover: false,
-        allowfullscreen: true,
         autoswipe: true,
       },
       param,
