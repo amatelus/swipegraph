@@ -63,91 +63,36 @@ var defineProperty = function (obj, key, value) {
   return obj;
 };
 
-function sendMessage(refObject, type, value) {
-  if (refObject.$iframe && refObject.$iframe.contentWindow) {
-    refObject.$iframe.contentWindow.postMessage({
-      type: type,
-      value: value
-    }, '*');
-  } else refObject.dispatch('$' + type, value);
-}
-
 var _class = function () {
   function _class(elem) {
     classCallCheck(this, _class);
 
     this.elem = elem;
     this.readyState = 'waiting';
-    this.$iframe = null;
-    this.$isInit = false;
-    this.$info = null;
     this.$eventList = {};
   }
 
   createClass(_class, [{
-    key: '$setInfo',
-    value: function $setInfo(info, originalInfo) {
-      this.$info = info;
-      this.readyState = 'loadedinfo';
-      this.dispatch('loadedinfo', originalInfo);
-      if (info.autoplay) this.$init();
-    }
-  }, {
     key: '$setMounted',
-    value: function $setMounted() {
+    value: function $setMounted(value) {
       this.readyState = 'mounted';
-      this.dispatch('mounted', null);
-    }
-  }, {
-    key: '$setIframe',
-    value: function $setIframe(iframe) {
-      if (this.readyState !== 'mounted') this.$setMounted(); // autoplay or play before lazyloaded
-      this.$iframe = iframe;
-      this.readyState = 'loading';
-      this.dispatch('loadstart', null);
-    }
-  }, {
-    key: '$iframeDidMount',
-    value: function $iframeDidMount() {
-      this.readyState = 'loaded';
-      this.dispatch('loaded', null);
-      this.requestFullscreen();
-    }
-  }, {
-    key: '$init',
-    value: function $init() {
-      this.$isInit = true;
+      this.dispatch('mounted', value);
     }
   }, {
     key: 'addSrcIndex',
     value: function addSrcIndex(value) {
-      sendMessage(this, 'addSrcIndex', value);
+      this.dispatch('addSrcIndex', value);
       return this;
     }
   }, {
     key: 'setSrcIndex',
     value: function setSrcIndex(value) {
-      sendMessage(this, 'setSrcIndex', value);
-      return this;
-    }
-  }, {
-    key: 'setFilter',
-    value: function setFilter(value) {
-      sendMessage(this, 'setFilter', value);
-      return this;
-    }
-  }, {
-    key: 'setPosterIndex',
-    value: function setPosterIndex(value) {
-      sendMessage(this, 'setPosterIndex', value);
+      this.dispatch('setSrcIndex', value);
       return this;
     }
   }, {
     key: 'detach',
     value: function detach() {
-      if (this.$iframe) {
-        this.$iframe.contentWindow.postMessage({ type: 'detach' }, '*');
-      }
       this.dispatch('$detach');
     }
   }, {
@@ -180,23 +125,13 @@ var _class = function () {
       return this;
     }
   }, {
-    key: 'getInfo',
-    value: function getInfo(callback) {
-      var _this2 = this;
-
-      if (this.readyState === 'waiting') this.one('loadedinfo', function (e) {
-        callback.call(_this2, e.value);
-      });else callback.call(this, this.$info);
-      return this;
-    }
-  }, {
     key: 'dispatch',
     value: function dispatch(type, value) {
-      var _this3 = this;
+      var _this2 = this;
 
       if (this.$eventList[type]) {
         this.$eventList[type].forEach(function (callback) {
-          callback.call(_this3, { type: type, value: value, target: _this3 });
+          callback.call(_this2, { type: type, value: value, target: _this2 });
         });
       }
 
@@ -212,7 +147,6 @@ function getVisiblePlayer(list) {
   var result = [];
 
   list.forEach(function (refObject) {
-    if (!refObject.$info || !refObject.$info.autoswipe) return;
     var bounding = refObject.elem.getBoundingClientRect();
     var wh = window.innerHeight;
 
@@ -225,60 +159,17 @@ function getVisiblePlayer(list) {
 var utils = {
   initedClassName: initedClassName,
   formatValue: function formatValue(elem, val) {
-    var tmpVal = Object.assign(['cid', 'src', 'ref', 'filter'].reduce(function (prev, key) {
+    return Object.assign(['id', 'src', 'ref'].reduce(function (prev, key) {
       return Object.assign({}, prev, defineProperty({}, key, elem.getAttribute('data-' + key)));
-    }, {}), ['fps', 'quality', 'head', 'lazyload', 'swipingwidth', 'autoswipe'].reduce(function (prev, key) {
+    }, {}), ['length', 'autoswipe'].reduce(function (prev, key) {
       return Object.assign({}, prev, defineProperty({}, key, JSON.parse(elem.getAttribute('data-' + key))));
     }, {}), val);
-
-    var param = {};
-    Object.keys(tmpVal).forEach(function (key) {
-      var value = tmpVal[key];
-      if (value === null) return;
-
-      switch (key) {
-        case 'src':
-          {
-            var fileNameLike = value.match(/\/([^/]+?\.[^/]+?)($|\?)/);
-            if (fileNameLike === null) param.src = /\/$/.test(value) ? value.slice(0, -1) : value;else param.src = value.slice(0, fileNameLike.index);
-            param.iframeSrc = value;
-            break;
-          }
-        case 'cid':
-          param.contentId = value;
-          break;
-        case 'head':
-          param.headIndex = value;
-          break;
-        case 'swipingwidth':
-          param.swipingWidth = value;
-          break;
-        default:
-          param[key] = value;
-          break;
-      }
-    });
-
-    return param;
   },
   genInfo: function genInfo(param) {
     var queryString = param.$auth ? '?' + param.$auth : '';
     return Object.assign({
       queryString: queryString,
       cdnQueryString: param.$cdnAuth ? '?' + param.$cdnAuth : queryString,
-      contentId: '',
-      headIndex: 0,
-      quality: 0.5,
-      loop: false,
-      muted: false,
-      controls: true,
-      autoplay: false,
-      showingTitle: true,
-      swipingWidth: 20,
-      filter: '',
-      iconcolor: '#E60014',
-      iconhover: false,
-      allowfullscreen: true,
       autoswipe: true
     }, param);
   },
@@ -305,198 +196,57 @@ var utils = {
   }
 };
 
-var loadingSvg = "<svg style=\"position:absolute;top:50%;left:50%;margin:-100px 0 0 -100px;\" width=\"200\" height=\"200\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 100 100\" preserveAspectRatio=\"xMidYMid\"><g transform=\"rotate(0 50 50)\">\n<rect x=\"47\" y=\"24\" rx=\"9.4\" ry=\"4.8\" width=\"6\" height=\"12\" fill=\"#5699d2\">\n  <animate attributeName=\"opacity\" values=\"1;0\" times=\"0;1\" dur=\"1s\" begin=\"-0.9166666666666666s\" repeatCount=\"indefinite\"></animate>\n</rect>\n</g><g transform=\"rotate(30 50 50)\">\n<rect x=\"47\" y=\"24\" rx=\"9.4\" ry=\"4.8\" width=\"6\" height=\"12\" fill=\"#5699d2\">\n  <animate attributeName=\"opacity\" values=\"1;0\" times=\"0;1\" dur=\"1s\" begin=\"-0.8333333333333334s\" repeatCount=\"indefinite\"></animate>\n</rect>\n</g><g transform=\"rotate(60 50 50)\">\n<rect x=\"47\" y=\"24\" rx=\"9.4\" ry=\"4.8\" width=\"6\" height=\"12\" fill=\"#5699d2\">\n  <animate attributeName=\"opacity\" values=\"1;0\" times=\"0;1\" dur=\"1s\" begin=\"-0.75s\" repeatCount=\"indefinite\"></animate>\n</rect>\n</g><g transform=\"rotate(90 50 50)\">\n<rect x=\"47\" y=\"24\" rx=\"9.4\" ry=\"4.8\" width=\"6\" height=\"12\" fill=\"#5699d2\">\n  <animate attributeName=\"opacity\" values=\"1;0\" times=\"0;1\" dur=\"1s\" begin=\"-0.6666666666666666s\" repeatCount=\"indefinite\"></animate>\n</rect>\n</g><g transform=\"rotate(120 50 50)\">\n<rect x=\"47\" y=\"24\" rx=\"9.4\" ry=\"4.8\" width=\"6\" height=\"12\" fill=\"#5699d2\">\n  <animate attributeName=\"opacity\" values=\"1;0\" times=\"0;1\" dur=\"1s\" begin=\"-0.5833333333333334s\" repeatCount=\"indefinite\"></animate>\n</rect>\n</g><g transform=\"rotate(150 50 50)\">\n<rect x=\"47\" y=\"24\" rx=\"9.4\" ry=\"4.8\" width=\"6\" height=\"12\" fill=\"#5699d2\">\n  <animate attributeName=\"opacity\" values=\"1;0\" times=\"0;1\" dur=\"1s\" begin=\"-0.5s\" repeatCount=\"indefinite\"></animate>\n</rect>\n</g><g transform=\"rotate(180 50 50)\">\n<rect x=\"47\" y=\"24\" rx=\"9.4\" ry=\"4.8\" width=\"6\" height=\"12\" fill=\"#5699d2\">\n  <animate attributeName=\"opacity\" values=\"1;0\" times=\"0;1\" dur=\"1s\" begin=\"-0.4166666666666667s\" repeatCount=\"indefinite\"></animate>\n</rect>\n</g><g transform=\"rotate(210 50 50)\">\n<rect x=\"47\" y=\"24\" rx=\"9.4\" ry=\"4.8\" width=\"6\" height=\"12\" fill=\"#5699d2\">\n  <animate attributeName=\"opacity\" values=\"1;0\" times=\"0;1\" dur=\"1s\" begin=\"-0.3333333333333333s\" repeatCount=\"indefinite\"></animate>\n</rect>\n</g><g transform=\"rotate(240 50 50)\">\n<rect x=\"47\" y=\"24\" rx=\"9.4\" ry=\"4.8\" width=\"6\" height=\"12\" fill=\"#5699d2\">\n  <animate attributeName=\"opacity\" values=\"1;0\" times=\"0;1\" dur=\"1s\" begin=\"-0.25s\" repeatCount=\"indefinite\"></animate>\n</rect>\n</g><g transform=\"rotate(270 50 50)\">\n<rect x=\"47\" y=\"24\" rx=\"9.4\" ry=\"4.8\" width=\"6\" height=\"12\" fill=\"#5699d2\">\n  <animate attributeName=\"opacity\" values=\"1;0\" times=\"0;1\" dur=\"1s\" begin=\"-0.16666666666666666s\" repeatCount=\"indefinite\"></animate>\n</rect>\n</g><g transform=\"rotate(300 50 50)\">\n<rect x=\"47\" y=\"24\" rx=\"9.4\" ry=\"4.8\" width=\"6\" height=\"12\" fill=\"#5699d2\">\n  <animate attributeName=\"opacity\" values=\"1;0\" times=\"0;1\" dur=\"1s\" begin=\"-0.08333333333333333s\" repeatCount=\"indefinite\"></animate>\n</rect>\n</g><g transform=\"rotate(330 50 50)\">\n<rect x=\"47\" y=\"24\" rx=\"9.4\" ry=\"4.8\" width=\"6\" height=\"12\" fill=\"#5699d2\">\n  <animate attributeName=\"opacity\" values=\"1;0\" times=\"0;1\" dur=\"1s\" begin=\"0s\" repeatCount=\"indefinite\"></animate>\n</rect>\n</g></svg>";
+var URL$1 = window.URL || window.webkitURL;
+
+var getObjectURL = (function (url, cb) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url);
+  xhr.responseType = 'blob';
+  xhr.onload = function (e) {
+    return cb(URL$1.createObjectURL(e.target.response));
+  };
+  xhr.send();
+});
 
 var addStyle = utils.addStyle;
 
-var _class$1 = function () {
-  function _class() {
-    classCallCheck(this, _class);
 
-    this.loaded = 0;
-    this.total = 1;
-    var container = document.createElement('div');
-    addStyle(container, {
-      position: 'absolute',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%,70px)'
-    });
-
-    var text = document.createElement('div');
-    addStyle(text, {
-      textAlign: 'center',
-      color: '#555',
-      fontSize: '12px'
-    });
-    text.innerText = '/';
-    container.appendChild(text);
-
-    var barFrame = document.createElement('div');
-    addStyle(barFrame, {
-      width: '200px',
-      height: '5px',
-      background: '#ccc',
-      marginTop: '5px',
-      position: 'relative'
-    });
-    container.appendChild(barFrame);
-
-    var bar = document.createElement('div');
-    addStyle(bar, {
-      width: '0px',
-      height: '100%',
-      background: '#5699d2',
-      position: 'absolute',
-      top: 0,
-      left: 0
-    });
-    barFrame.appendChild(bar);
-
-    this.container = container;
-    this.textElem = text;
-    this.barElem = bar;
-  }
-
-  createClass(_class, [{
-    key: 'update',
-    value: function update(loaded, total) {
-      this.textElem.innerText = Math.floor(loaded / 102.4 / 1024) / 10 + ' / ' + Math.floor(total / 102.4 / 1024) / 10 + 'MB';
-      this.barElem.style.width = loaded / total * 100 + '%';
-    }
-  }]);
-  return _class;
-}();
-
-var addStyle$1 = utils.addStyle;
-
-var _class$2 = function () {
-  function _class() {
-    classCallCheck(this, _class);
-
-    this.loaded = 0;
-    this.total = 1;
-    var container = document.createElement('div');
-    addStyle$1(container, {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0
-    });
-
-    var bar = document.createElement('div');
-    addStyle$1(bar, {
-      width: '0%',
-      height: '5px',
-      background: '#f00'
-    });
-    container.appendChild(bar);
-
-    this.container = container;
-    this.barElem = bar;
-  }
-
-  createClass(_class, [{
-    key: 'update',
-    value: function update(loaded, total) {
-      this.barElem.style.width = loaded / total * 100 + '%';
-    }
-  }]);
-  return _class;
-}();
-
-var toBlob = (function (canvas, callback, type, quality) {
-  if (canvas.toBlob) {
-    canvas.toBlob(callback, type, quality);
-  } else {
-    var binStr = atob(canvas.toDataURL(type, quality).split(',')[1]);
-    var len = binStr.length;
-    var arr = new Uint8Array(len);
-
-    for (var i = 0; i < len; i++) {
-      arr[i] = binStr.charCodeAt(i);
-    }
-
-    callback(new Blob([arr], { type: type }));
-  }
-});
-
-var genImageData = (function (videoData, imageDataList, info, root, onSetViewer) {
-  var videoSrc = URL.createObjectURL(videoData);
-  var transcodingBar = new _class$2();
-
-  var tmpList = [];
-  var totalCount = 0;
-  var createImg = function createImg(n, video, ctx, canvas) {
-    video.ontimeupdate = function () {
-      video.ontimeupdate = null;
-      ctx.drawImage(video, 0, 0);
-
-      toBlob(canvas, function (blob) {
-        tmpList[n] = URL.createObjectURL(blob);
-        imageDataList.length = 0;
-        Array.prototype.push.apply(imageDataList, tmpList.filter(function (data) {
-          return !!data;
-        }));
-        if (imageDataList.length === totalCount) {
-          tmpList = null;
-          root.removeChild(transcodingBar.container);
-          URL.revokeObjectURL(videoSrc);
-        } else {
-          transcodingBar.update(imageDataList.length, totalCount);
-        }
-      }, 'image/jpeg', info.quality);
-
-      if (n < totalCount - 1) createImg(n + 1, video, ctx, canvas);
-    };
-
-    video.currentTime = n / info.fps;
-  };
-
-  var video = document.createElement('video');
-  totalCount = Math.floor(video.duration * info.fps);
-  video.playsinline = 1;
-  video.oncanplaythrough = function (e) {
-    var video = e.target;
-    onSetViewer(video.videoWidth, video.videoHeight);
-    root.appendChild(transcodingBar.container);
-    video.oncanplaythrough = null;
-    totalCount = Math.floor(video.duration * info.fps);
-    var canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    createImg(0, video, canvas.getContext('2d'), canvas);
-  };
-  video.src = videoSrc;
-  video.load();
-});
-
-var addStyle$3 = utils.addStyle;
-
-
-var setViewer = (function (imageDataList, root, info, videoWidth, videoHeight) {
+var setViewer = (function (root, info, refObject) {
   var initSwiped = false;
   var swiping = false;
   var prevX = null;
   var prevY = null;
-  var srcIndex = 0;
-
-  root.innerHTML = '';
-  root.style.paddingTop = videoHeight / videoWidth * 100 + '%';
+  var nextDelta = 1;
+  var srcIndex = -1;
+  var urlCache = [];
 
   var image = new Image();
-  addStyle$3(image, {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    backfaceVisibility: 'hidden'
-  });
   root.appendChild(image);
 
+  image.onload = function (e) {
+    var target = e.target;
+    var height = target.naturalHeight;
+    var width = target.naturalWidth;
+    root.style.paddingTop = height / width * 100 + '%';
+    target.onload = null;
+
+    addStyle(image, {
+      width: '100%',
+      height: '100%',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      backfaceVisibility: 'hidden'
+    });
+
+    refObject.$setMounted({
+      width: width,
+      height: height
+    });
+  };
+
   var touchElem = document.createElement('div');
-  addStyle$3(touchElem, {
+  addStyle(touchElem, {
     width: '100%',
     height: '100%',
     position: 'absolute',
@@ -524,26 +274,27 @@ var setViewer = (function (imageDataList, root, info, videoWidth, videoHeight) {
   touchElem.addEventListener('mouseup', swipeEnd, false);
   touchElem.addEventListener('touchend', swipeEnd, false);
 
-  var addSrcIndex = function addSrcIndex(value) {
-    if (imageDataList.length === 0) return;
-    var swipedIndex = (srcIndex + value) % imageDataList.length;
-    if (swipedIndex < 0) {
-      swipedIndex += imageDataList.length;
-    }
-    srcIndex = swipedIndex;
-  };
+  var canceler = setInterval(function () {
+    if (nextDelta === 0) return;
 
-  var update = function update() {
-    var i = srcIndex === 0 ? 1 : srcIndex; // > 1 for iOS Safari
-    if (!imageDataList[i]) {
-      setTimeout(update, 16);
-      return;
+    var swipedIndex = (srcIndex + nextDelta) % info.length;
+    if (swipedIndex < 0) {
+      swipedIndex += info.length;
     }
-    image.src = imageDataList[i];
-  };
+
+    var i = srcIndex = swipedIndex;
+    if (!urlCache[i]) {
+      getObjectURL(info.src + '/' + info.id + '/' + (i + 1) + '.jpg' + info.queryString, function (url) {
+        urlCache[i] = url;
+        image.src = url;
+      });
+    } else image.src = urlCache[i];
+
+    nextDelta = 0;
+  }, 33);
 
   var handleSwipe = function handleSwipe(e) {
-    if (!swiping && (initSwiped || !info.autoswipe)) return;
+    if (!swiping && initSwiped) return;
 
     var x = typeof e.clientX === 'number' ? e.clientX : e.touches[0].pageX;
     var y = typeof e.clientY === 'number' ? e.clientY : e.touches[0].pageY;
@@ -552,30 +303,28 @@ var setViewer = (function (imageDataList, root, info, videoWidth, videoHeight) {
       prevX = x;
       prevY = y;
     } else if (Math.abs(x - prevX) > Math.abs(y - prevY)) {
-      addSrcIndex(x - prevX > 0 ? -1 : 1);
-      var pX = prevX;
-      setTimeout(function () {
-        return addSrcIndex(x - pX > 0 ? -1 : 1);
-      }, 33);
-      update();
+      nextDelta = x - prevX > 0 ? -1 : 1;
       prevX = x;
       prevY = y;
     } else {
-      addSrcIndex(y - prevY > 0 ? -1 : 1);
-      var pY = prevY;
-      setTimeout(function () {
-        return addSrcIndex(y - pY > 0 ? -1 : 1);
-      }, 33);
-      update();
+      nextDelta = y - prevY > 0 ? -1 : 1;
       prevX = x;
       prevY = y;
     }
   };
 
+  refObject.on('addSrcIndex', function (e) {
+    return nextDelta = e.value;
+  });
+  refObject.on('$detach', function () {
+    urlCache.forEach(function (url) {
+      return URL.revokeObjectURL(url);
+    });
+    clearInterval(canceler);
+  });
+
   touchElem.addEventListener('mousemove', handleSwipe, false);
   touchElem.addEventListener('touchmove', handleSwipe, false);
-
-  update();
 });
 
 if (!Array.prototype.find) {
@@ -604,12 +353,11 @@ if (!Array.prototype.find) {
 var initedClassName$1 = utils.initedClassName;
 var formatValue = utils.formatValue;
 var genInfo = utils.genInfo;
-var addStyle$4 = utils.addStyle;
+var addStyle$1 = utils.addStyle;
 
 
-var VERSION = "0.1.0";
+var VERSION = "0.2.0";
 var refObjectCache = [];
-var imageDataCache = [];
 utils.initAutoSwipe(refObjectCache);
 
 var swipegraph = {
@@ -633,51 +381,13 @@ var swipegraph = {
     if (param.ref) swipegraph.refs[param.ref] = refObject;
 
     var root = document.createElement('div');
-    addStyle$4(root, {
-      paddingTop: '56.25%',
+    addStyle$1(root, {
       position: 'relative'
     });
-    root.innerHTML = loadingSvg;
     elem.appendChild(root);
 
-    var progress = new _class$1();
-    root.appendChild(progress.container);
-
     var info = genInfo(param);
-    refObject.$setInfo(info);
-
-    var videoPath = info.iframeSrc + '/' + info.contentId + '/video.mp4';
-    var cachedURL = imageDataCache.find(function (obj) {
-      return obj.originPath === videoPath;
-    });
-
-    if (cachedURL) {
-      setViewer(cachedURL.data, root, info, cachedURL.width, cachedURL.height);
-    } else {
-      var cachedData = {
-        originPath: videoPath,
-        width: null,
-        height: null,
-        data: []
-      };
-      imageDataCache.push(cachedData);
-
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', videoPath);
-      xhr.responseType = 'blob';
-      xhr.onload = function (e) {
-        genImageData(e.target.response, cachedData.data, info, root, function (width, height) {
-          cachedData.width = width;
-          cachedData.height = height;
-          setViewer(cachedData.data, root, info, width, height);
-        });
-      };
-
-      xhr.onprogress = function (evt) {
-        if (evt.lengthComputable) progress.update(evt.loaded, evt.total);
-      };
-      xhr.send();
-    }
+    setViewer(root, info, refObject);
 
     refObject.on('$detach', function (_ref) {
       var target = _ref.target;
