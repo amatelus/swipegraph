@@ -2,6 +2,7 @@ import RefObject from './RefObject';
 import utils from './utils';
 import setViewer from './setViewer';
 import './polyfill-find';
+import './polyfill-assign';
 
 const { initedClassName, formatValue, genInfo, addStyle } = utils;
 
