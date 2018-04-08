@@ -212,8 +212,6 @@ var addStyle = utils.addStyle;
 
 
 var setViewer = (function (root, info, refObject) {
-  var initSwiped = false;
-  var swiping = false;
   var prevX = null;
   var prevY = null;
   var nextDelta = 1;
@@ -258,13 +256,10 @@ var setViewer = (function (root, info, refObject) {
 
   var swipeStart = function swipeStart(e) {
     e.preventDefault();
-    initSwiped = true;
-    swiping = true;
     touchElem.style.position = 'fixed';
   };
 
   var swipeEnd = function swipeEnd() {
-    swiping = false;
     touchElem.style.position = 'absolute';
   };
 
@@ -294,8 +289,6 @@ var setViewer = (function (root, info, refObject) {
   }, 33);
 
   var handleSwipe = function handleSwipe(e) {
-    if (!swiping && initSwiped) return;
-
     var x = typeof e.clientX === 'number' ? e.clientX : e.touches[0].pageX;
     var y = typeof e.clientY === 'number' ? e.clientY : e.touches[0].pageY;
 
@@ -303,7 +296,7 @@ var setViewer = (function (root, info, refObject) {
       prevX = x;
       prevY = y;
     } else if (Math.abs(x - prevX) > Math.abs(y - prevY)) {
-      nextDelta = x - prevX > 0 ? -1 : 1;
+      nextDelta = x - prevX > 0 ? 1 : -1;
       prevX = x;
       prevY = y;
     } else {
@@ -388,7 +381,7 @@ var genInfo = utils.genInfo;
 var addStyle$1 = utils.addStyle;
 
 
-var VERSION = "0.2.0";
+var VERSION = "0.3.0";
 var refObjectCache = [];
 utils.initAutoSwipe(refObjectCache);
 
