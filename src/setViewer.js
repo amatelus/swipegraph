@@ -3,8 +3,6 @@ import getObjectURL from './getObjectURL';
 const { addStyle } = utils;
 
 export default (root, info, refObject) => {
-  let initSwiped = false;
-  let swiping = false;
   let prevX = null;
   let prevY = null;
   let nextDelta = 1;
@@ -49,13 +47,10 @@ export default (root, info, refObject) => {
 
   const swipeStart = (e) => {
     e.preventDefault();
-    initSwiped = true;
-    swiping = true;
     touchElem.style.position = 'fixed';
   };
 
   const swipeEnd = () => {
-    swiping = false;
     touchElem.style.position = 'absolute';
   };
 
@@ -85,8 +80,6 @@ export default (root, info, refObject) => {
   }, 33);
 
   const handleSwipe = (e) => {
-    if (!swiping && initSwiped) return;
-
     const x = typeof e.clientX === 'number' ? e.clientX : e.touches[0].pageX;
     const y = typeof e.clientY === 'number' ? e.clientY : e.touches[0].pageY;
     
@@ -94,7 +87,7 @@ export default (root, info, refObject) => {
       prevX = x;
       prevY = y;
     } else if (Math.abs(x - prevX) > Math.abs(y - prevY)) {
-      nextDelta = x - prevX > 0 ? -1 : 1;
+      nextDelta = x - prevX > 0 ? 1 : -1;
       prevX = x;
       prevY = y;
     } else {
